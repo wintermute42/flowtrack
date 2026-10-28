@@ -1,0 +1,10 @@
+opencv-python>=4.8
+numpy>=1.24
+python-osc>=1.8
+requests>=2.31
+websocket-client>=1.6
+pyyaml>=6.0
+# KI-Körpererkennung (detect: pose)
+mediapipe>=0.10.14
+# optional: eigene Effekte per Syphon an Resolume schicken (nur macOS)
+syphon-python>=0.1; sys_platform == "darwin"
