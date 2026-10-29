@@ -1,8 +1,8 @@
-"""flowtrack: Feuer/Props per Kamera verfolgen und Resolume (oder eigene Effekte) live steuern.
+"""flowtrack: track fire/props with a camera and drive Resolume (or built-in effects) live.
 
-  python -m flowtrack run        Tracking starten
-  python -m flowtrack calibrate  Kamera auf Beamer kalibrieren
-  python -m flowtrack discover   Resolume-Parameter auflisten (für config.yaml)
+  python -m flowtrack run        start tracking
+  python -m flowtrack calibrate  calibrate camera to projector
+  python -m flowtrack discover   list Resolume parameters (for config.yaml)
 """
 import argparse
 import sys
@@ -29,8 +29,8 @@ def cmd_discover(cfg, args):
     try:
         params = res.discover()
     except Exception as e:
-        sys.exit(f"Resolume nicht erreichbar unter {res.base} ({e}).\n"
-                 "Ist der Webserver an? Resolume → Einstellungen → Webserver → 'Enable Webserver & REST API'.")
+        sys.exit(f"Resolume not reachable at {res.base} ({e}).\n"
+                 "Is the webserver on? Resolume → Preferences → Webserver → 'Enable Webserver & REST API'.")
     q = (args.filter or "").lower()
     for path, p in params.items():
         if q in path.lower():
@@ -43,17 +43,17 @@ def draw_preview(frame, f, fps, renderer, tracker_cfg):
     h, w = view.shape[:2]
     if tracker_cfg.get("show_mask"):
         view[f["mask"] > 0] = (0, 0, 255)
-    for person in f.get("landmarks", []):  # Skelett der KI-Erkennung
+    for person in f.get("landmarks", []):  # skeleton from pose detection
         for x, y in person:
             cv2.circle(view, (int(x), int(y)), 3, (255, 200, 0), -1)
     for i, (x, y, a) in enumerate(f["blobs_cam"]):
         cv2.circle(view, (int(x), int(y)), 14, (0, 255, 0) if i == 0 else (0, 180, 255), 2)
-    txt = (f"{fps:4.0f} fps  Punkte {f['count']}  x {f['x']:.2f}  y {f['y']:.2f}  "
-           f"Tempo {f['speed']:.2f}  Schwelle {tracker_cfg.get('threshold')}")
+    txt = (f"{fps:4.0f} fps  points {f['count']}  x {f['x']:.2f}  y {f['y']:.2f}  "
+           f"speed {f['speed']:.2f}  threshold {tracker_cfg.get('threshold')}")
     if renderer:
-        txt += f"  Effekt {renderer.effect}"
+        txt += f"  effect {renderer.effect}"
     cv2.putText(view, txt, (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
-    cv2.putText(view, "q Ende | 1-4/n Effekt | +/- Schwelle | m Maske", (10, h - 15),
+    cv2.putText(view, "q quit | 1-4/n effect | +/- threshold | m mask", (10, h - 15),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
     return view
 
@@ -73,10 +73,10 @@ def cmd_run(cfg, args):
     if rcfg.get("enabled", True) and not args.dry_run:
         try:
             n = len(res.discover())
-            print(f"[resolume] {n} Parameter ausgelesen")
+            print(f"[resolume] read {n} parameters")
             res.connect_ws()
         except Exception as e:
-            print(f"[resolume] REST nicht erreichbar ({e}); 'param:'-Mappings werden übersprungen, OSC läuft trotzdem")
+            print(f"[resolume] REST not reachable ({e}); skipping 'param:' mappings, OSC still works")
 
     rend_cfg = cfg.get("render", {})
     renderer = Renderer(rend_cfg) if rend_cfg.get("enabled", False) or args.render else None
@@ -87,12 +87,12 @@ def cmd_run(cfg, args):
     if renderer and rend_cfg.get("syphon", True) and not args.headless:
         try:
             syphon = SyphonOut(rend_cfg.get("syphon_name", "flowtrack"))
-            print("[syphon] Server 'flowtrack' läuft, in Resolume unter Quellen → Syphon wählbar")
+            print("[syphon] server 'flowtrack' running, select it in Resolume under Sources → Syphon")
         except Exception as e:
-            print(f"[syphon] nicht verfügbar ({e})")
+            print(f"[syphon] not available ({e})")
     show_out = renderer and rend_cfg.get("window", True) and not args.headless
     if show_out:
-        calibrate.projector_window("ausgabe", cfg)
+        calibrate.projector_window("output", cfg)
 
     fps, last, n = 0.0, time.time(), 0
     target_dt = 1.0 / cam.get("fps", 60)
@@ -110,7 +110,7 @@ def cmd_run(cfg, args):
             if syphon:
                 syphon.send(out)
             if show_out:
-                cv2.imshow("ausgabe", out)
+                cv2.imshow("output", out)
         nowr = time.time()
         fps = 0.9 * fps + 0.1 / max(nowr - last, 1e-3)
         last = nowr
@@ -121,8 +121,8 @@ def cmd_run(cfg, args):
             if args.verbose and n % 30 == 0:
                 print(f"frame {n}: present={f['present']} count={f['count']} x={f['x']:.3f} y={f['y']:.3f} speed={f['speed']:.2f}")
             continue
-        cv2.imshow("kamera", draw_preview(frame, f, fps, renderer, tcfg))
-        if demo:  # Demo in Echtzeit abspielen
+        cv2.imshow("camera", draw_preview(frame, f, fps, renderer, tcfg))
+        if demo:  # play the demo in real time
             time.sleep(max(0.0, target_dt - (time.time() - t_frame)))
         key = cv2.waitKey(1) & 0xFF
         if key in (27, ord("q")):
@@ -150,13 +150,13 @@ def main(argv=None):
     ap = argparse.ArgumentParser(prog="flowtrack")
     ap.add_argument("command", choices=["run", "calibrate", "discover"])
     ap.add_argument("-c", "--config", default="config.yaml")
-    ap.add_argument("-s", "--source", help="Kamera-Nummer (0, 1, …), Videodatei, 'demo' oder 'demo-color'")
-    ap.add_argument("--render", action="store_true", help="eigene Effekte einschalten")
-    ap.add_argument("--dry-run", action="store_true", help="nichts an Resolume senden, nur anzeigen")
-    ap.add_argument("--headless", action="store_true", help="ohne Fenster (Test)")
-    ap.add_argument("--frames", type=int, help="nach N Bildern beenden (Test)")
+    ap.add_argument("-s", "--source", help="camera number (0, 1, …), video file, 'demo' or 'demo-color'")
+    ap.add_argument("--render", action="store_true", help="enable built-in effects")
+    ap.add_argument("--dry-run", action="store_true", help="send nothing to Resolume, only print")
+    ap.add_argument("--headless", action="store_true", help="no windows (testing)")
+    ap.add_argument("--frames", type=int, help="stop after N frames (testing)")
     ap.add_argument("-v", "--verbose", action="store_true")
-    ap.add_argument("--filter", help="discover: nur Pfade mit diesem Text")
+    ap.add_argument("--filter", help="discover: only paths containing this text")
     args = ap.parse_args(argv)
     cfg = load_config(args.config)
     if args.command == "discover":

@@ -30,9 +30,11 @@ Beim ersten Kamerazugriff fragt macOS nach der Erlaubnis für das Terminal. Die 
 python3 -m flowtrack run --source demo --render --dry-run
 ```
 
-Es öffnen sich zwei Fenster. Das Fenster **kamera** zeigt ein simuliertes Bild mit Feuerpunkten, das Fenster **ausgabe** die eigenen Effekte. Die Effekte wechselst du mit den Tasten `1`–`4` (Spuren, Wellen, Funken, Kaleidoskop) oder mit `n`. `--dry-run` schickt nichts an Resolume und zeigt die OSC-Nachrichten nur im Terminal an.
+Es öffnen sich zwei Fenster. Das Fenster **camera** zeigt ein simuliertes Bild mit Feuerpunkten, das Fenster **output** die eigenen Effekte. Die Effekte wechselst du mit den Tasten `1`–`4` (Spuren, Wellen, Funken, Kaleidoskop) oder mit `n`. `--dry-run` schickt nichts an Resolume und zeigt die OSC-Nachrichten nur im Terminal an.
 
 Die Variante `--source demo-color` simuliert grüne LED-Poi. Dafür musst du in `config.yaml` `detect: color` setzen.
+
+Die Kommentare in `config.yaml` und die Meldungen im Terminal sind auf Englisch.
 
 ## 3. Resolume vorbereiten
 

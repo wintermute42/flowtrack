@@ -1,87 +1,87 @@
-# flowtrack – Einstellungen. Nach Änderungen einfach neu starten.
+# flowtrack settings. Restart after changes.
 
 camera:
-  source: 0            # 0 = erste Kamera (iPhone per Continuity-Kamera oder Webcam), "demo" = ohne Kamera testen
+  source: 0            # 0 = first camera (iPhone via Continuity Camera or webcam), "demo" = test without a camera
   width: 1280
   height: 720
   fps: 60
-  # exposure: -6       # manuelle Belichtung (niedriger = dunkler). Wird nicht von jeder Kamera unterstützt.
+  # exposure: -6       # manual exposure (lower = darker). Not supported by every camera.
 
-calibration_file: calibration.json   # wird von "python -m flowtrack calibrate" erzeugt
+calibration_file: calibration.json   # written by "python -m flowtrack calibrate"
 
-# Position des Beamer-Bildschirms in macOS (Systemeinstellungen → Displays → Anordnen).
-# Steht der Beamer rechts neben einem 1920 px breiten Hauptbildschirm: x 1920, y 0.
+# Position of the projector display in macOS (System Settings → Displays → Arrange).
+# Projector to the right of a 1920 px wide main display: x 1920, y 0.
 projector_window: {x: 1920, y: 0}
 
 tracking:
-  detect: brightness   # "brightness" = Feuer / IR / helle LEDs, "color" = Farbe, "pose" = KI-Körpererkennung
-  threshold: 200       # Helligkeitsschwelle 0..255 (live mit +/- anpassbar)
-  hsv_low:  [40, 120, 120]   # nur bei detect: color. Voreinstellung = Grün
+  detect: brightness   # "brightness" = fire / IR / bright LEDs, "color" = colour, "pose" = AI body detection
+  threshold: 200       # brightness threshold 0..255 (adjust live with +/-)
+  hsv_low:  [40, 120, 120]   # only for detect: color. Default = green
   hsv_high: [85, 255, 255]
-  # nur bei detect: pose (KI, MediaPipe). Der erste Punkt ist der Hauptpunkt (x/y).
-  # möglich: right_hand, left_hand, right_wrist, left_wrist, right_elbow, left_elbow,
-  #          right_foot, left_foot, nose, center
+  # only for detect: pose (AI, MediaPipe). The first point is the main point (x/y).
+  # valid: right_hand, left_hand, right_wrist, left_wrist, right_elbow, left_elbow,
+  #        right_foot, left_foot, nose, center
   pose_points: [right_hand, left_hand]
-  pose_model: lite     # "lite" = schnell, "full" = genauer
+  pose_model: lite     # "lite" = fast, "full" = more accurate
   pose_people: 1
-  min_area: 20         # kleinere Flecken (Rauschen, Funken) ignorieren
+  min_area: 20         # ignore smaller spots (noise, sparks)
   max_area: 20000
-  max_blobs: 4         # höchstens so viele Props gleichzeitig
-  mode: largest        # "largest" = größter Punkt, "centroid" = Mitte aller Punkte
-  # mask: mask.png     # optional: Schwarz-Weiß-Bild in Kameragröße, schwarze Bereiche werden ignoriert
-  lead_ms: 80          # Vorhersage: gleicht Verzögerung bei schnellen Bewegungen aus (0 = aus)
-  filter:              # Glättung (One-Euro): min_cutoff kleiner = ruhiger, beta größer = schneller
+  max_blobs: 4         # at most this many props at once
+  mode: largest        # "largest" = biggest point, "centroid" = centre of all points
+  # mask: mask.png     # optional: black-and-white image in camera size, black areas are ignored
+  lead_ms: 80          # prediction: makes up for latency on fast movements (0 = off)
+  filter:              # smoothing (One Euro): smaller min_cutoff = calmer, larger beta = faster
     min_cutoff: 1.0
     beta: 0.3
 
 resolume:
   enabled: true
-  host: 127.0.0.1      # Resolume auf demselben Mac
-  osc_port: 7000       # Resolume → Einstellungen → OSC → OSC Input aktivieren
-  http_port: 8080      # Resolume → Einstellungen → Webserver aktivieren
+  host: 127.0.0.1      # Resolume on the same Mac
+  osc_port: 7000       # Resolume → Preferences → OSC → enable OSC Input
+  http_port: 8080      # Resolume → Preferences → Webserver → enable
 
-# Merkmale: x, y (0..1 auf dem Beamerbild), speed, count, spread, present
-# Ziel entweder "osc:" (Adresse aus Resolume: Shortcuts → Edit OSC, dann Regler anklicken)
-# oder "param:" (Pfad bzw. eindeutiger Teil davon aus "python -m flowtrack discover").
+# Features: x, y (0..1 on the projector image), speed, count, spread, present
+# Target either "osc:" (address from Resolume: Shortcuts → Edit OSC, then click the control)
+# or "param:" (path or a unique part of it from "python -m flowtrack discover").
 outputs:
   - feature: x
-    osc: /composition/layers/1/video/effects/transform/positionx   # Beispiel – Adresse in Resolume prüfen!
+    osc: /composition/layers/1/video/effects/transform/positionx   # example: check the address in Resolume!
     range: [0, 1]
   - feature: y
     osc: /composition/layers/1/video/effects/transform/positiony
     range: [0, 1]
     invert: true
-  # Beispiel über REST/WebSocket, ohne OSC-Adresse:
+  # Example via REST/WebSocket, without an OSC address:
   # - feature: speed
   #   param: "layers/1/video/effects/Bloom/params/Amount"
-  #   in: [0, 1.5]          # Tempo 0..1,5 → ganzer Reglerbereich
+  #   in: [0, 1.5]          # speed 0..1.5 → full control range
   #   range: [0, 1]
 
-# Regeln: lösen einmal aus, wenn die Bedingung (mindestens "for" Sekunden) eintritt.
-# Bedingungen: present, absent, oder "merkmal > zahl" (>, <, >=, <=, ==)
-# Aktionen: clip: [layer, clip] | osc: adresse (+ value) | param: pfad + value | effect: name/next
+# Rules fire once when the condition becomes true (for at least "for" seconds).
+# Conditions: present, absent, or "feature > number" (>, <, >=, <=, ==)
+# Actions: clip: [layer, clip] | osc: address (+ value) | param: path + value | effect: name/next
 rules:
-  - name: Feuer an
+  - name: Fire on
     when: present
     for: 0.3
     do: {clip: [2, 1]}
-  - name: Feuer aus
+  - name: Fire off
     when: absent
     for: 2.0
     do: {clip: [2, 2]}
-  - name: Schnell
+  - name: Fast
     when: "speed > 1.0"
     for: 0.5
     cooldown: 4
     do: {effect: next}
 
-render:                # eigene Effekte (auch ohne Resolume)
-  enabled: false       # oder mit --render einschalten
-  effect: trails       # trails | ripples | particles | kaleido (live mit 1-4 bzw. n)
+render:                # built-in effects (also without Resolume)
+  enabled: false       # or enable with --render
+  effect: trails       # trails | ripples | particles | kaleido (live with 1-4 or n)
   size: [1280, 720]
   internal_scale: 0.5
-  decay: 0.90          # wie lange Spuren nachleuchten (0.8 kurz … 0.97 lang)
+  decay: 0.90          # how long trails glow (0.8 short … 0.97 long)
   color: [40, 140, 255]    # BGR
   color2: [255, 120, 30]
-  window: true         # Vollbild auf dem Beamer
-  syphon: true         # zusätzlich als Syphon-Quelle für Resolume
+  window: true         # full screen on the projector
+  syphon: true         # also as a Syphon source for Resolume

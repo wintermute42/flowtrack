@@ -1,4 +1,4 @@
-"""Erkennung heller Punkte (Feuer, IR-Reflexband, LEDs), Glättung und Abbildung auf Beamer-Koordinaten."""
+"""Detection of bright points (fire, IR reflective tape, LEDs), smoothing and mapping to projector coordinates."""
 import json
 import math
 import time
@@ -9,7 +9,7 @@ import numpy as np
 
 
 class OneEuro:
-    """One-Euro-Filter: glättet stark bei langsamer Bewegung, reagiert schnell bei schneller Bewegung."""
+    """One Euro filter: smooths strongly on slow movement, reacts quickly on fast movement."""
 
     def __init__(self, min_cutoff=1.0, beta=0.02, d_cutoff=1.0):
         self.min_cutoff, self.beta, self.d_cutoff = min_cutoff, beta, d_cutoff
@@ -39,7 +39,7 @@ class OneEuro:
 
 
 class Calibration:
-    """Homographie vom Kamerabild auf normierte Beamer-Koordinaten (0..1)."""
+    """Homography from the camera image to normalized projector coordinates (0..1)."""
 
     def __init__(self, path=None):
         self.H = None
@@ -75,7 +75,7 @@ class Tracker:
 
     def detect(self, frame):
         if self.cfg.get("detect", "brightness") == "color":
-            # Farbbereich in HSV (OpenCV: H 0..179, S/V 0..255), z. B. für LED-Poi oder farbige Bälle
+            # colour range in HSV (OpenCV: H 0..179, S/V 0..255), e.g. for LED poi or coloured balls
             hsv = cv2.cvtColor(cv2.GaussianBlur(frame, (5, 5), 0), cv2.COLOR_BGR2HSV)
             bw = cv2.inRange(hsv, np.array(self.cfg.get("hsv_low", [40, 120, 120])),
                              np.array(self.cfg.get("hsv_high", [85, 255, 255])))
@@ -104,7 +104,7 @@ class Tracker:
             self.pose.landmarker.close()
 
     def update(self, frame, now=None):
-        """Liefert ein Dict mit Merkmalen für Mapping und Regeln."""
+        """Returns a dict of features for mappings and rules."""
         now = time.time() if now is None else now
         h, w = frame.shape[:2]
         if self.pose:
@@ -116,12 +116,12 @@ class Tracker:
              "landmarks": self.pose.landmarks if self.pose else []}
         if pts:
             if self.cfg.get("mode", "largest") == "centroid":
-                wts = [1.0 if self.pose else p[2] for p in pts]  # Pose: alle Punkte gleich gewichten
+                wts = [1.0 if self.pose else p[2] for p in pts]  # pose: weight all points equally
                 x = sum(p[0] * wt for p, wt in zip(pts, wts)) / sum(wts)
                 y = sum(p[1] * wt for p, wt in zip(pts, wts)) / sum(wts)
             else:
                 x, y = pts[0][0], pts[0][1]
-            if now - self.last_seen > 0.5:  # nach längerer Pause nicht vom alten Punkt hergleiten
+            if now - self.last_seen > 0.5:  # after a longer pause, do not glide from the old point
                 self.fx.reset(); self.fy.reset(); self.prev = None
             sx, sy = self.fx(x, now), self.fy(y, now)
             if self.prev is not None:
@@ -134,7 +134,7 @@ class Tracker:
                 self.vel = (0.0, 0.0)
             self.prev = (sx, sy, now)
             self.last_seen = now
-            # Vorhersage: um lead_ms in die Zukunft schieben, gleicht einen Teil der Verzögerung aus
+            # prediction: shift lead_ms into the future to make up for part of the latency
             lead = self.cfg.get("lead_ms", 0) / 1000.0
             px = min(max(sx + self.vel[0] * lead, -0.2), 1.2)
             py = min(max(sy + self.vel[1] * lead, -0.2), 1.2)
@@ -142,7 +142,7 @@ class Tracker:
             f.update(x=px, y=py, spread=math.hypot(max(xs) - min(xs), max(ys) - min(ys)))
         else:
             self.speed *= 0.9
-            if self.prev:  # letzte Position halten
+            if self.prev:  # hold last position
                 f.update(x=self.prev[0], y=self.prev[1])
             else:
                 f.update(x=0.5, y=0.5)

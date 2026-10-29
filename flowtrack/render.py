@@ -1,4 +1,4 @@
-"""Eigene Effekte ohne Resolume. Ausgabe als Vollbild auf dem Beamer und/oder per Syphon an Resolume."""
+"""Built-in effects without Resolume. Output full screen on the projector and/or via Syphon to Resolume."""
 
 import cv2
 import numpy as np
@@ -9,15 +9,15 @@ EFFECTS = ["trails", "ripples", "particles", "kaleido"]
 class Renderer:
     def __init__(self, cfg):
         self.W, self.H = cfg.get("size", [1280, 720])
-        self.s = cfg.get("internal_scale", 0.5)  # intern in halber Auflösung rechnen, spart CPU
+        self.s = cfg.get("internal_scale", 0.5)  # render at half resolution internally to save CPU
         self.w, self.h = int(self.W * self.s), int(self.H * self.s)
-        self.color = np.array(cfg.get("color", [40, 140, 255]), np.float32) / 255.0  # BGR, Feuer-Orange
-        self.color2 = np.array(cfg.get("color2", [255, 120, 30]), np.float32) / 255.0  # BGR, Blau
+        self.color = np.array(cfg.get("color", [40, 140, 255]), np.float32) / 255.0  # BGR, fire orange
+        self.color2 = np.array(cfg.get("color2", [255, 120, 30]), np.float32) / 255.0  # BGR, blue
         self.decay = cfg.get("decay", 0.90)
         self.effect = cfg.get("effect", "trails")
         self.buf = np.zeros((self.h, self.w, 3), np.float32)
         self.ripples = []
-        self.parts = np.zeros((0, 5), np.float32)  # x, y, vx, vy, leben
+        self.parts = np.zeros((0, 5), np.float32)  # x, y, vx, vy, life
         self.t = 0.0
 
     def set_effect(self, name):
@@ -25,7 +25,7 @@ class Renderer:
             name = EFFECTS[(EFFECTS.index(self.effect) + 1) % len(EFFECTS)]
         if name in EFFECTS:
             self.effect = name
-            print(f"[effekt] {name}")
+            print(f"[effect] {name}")
 
     def _px(self, x, y):
         return int(x * self.w), int(y * self.h)
@@ -41,11 +41,11 @@ class Renderer:
                 r = int(6 + 18 * energy)
                 cv2.circle(self.buf, self._px(x, y), r, (self.color * (0.6 + 0.6 * energy)).tolist(), -1, cv2.LINE_AA)
         elif self.effect == "ripples":
-            gap = 0.6 - 0.45 * energy  # schneller = dichtere Wellen
+            gap = 0.6 - 0.45 * energy  # faster = denser ripples
             if f["present"] and (not self.ripples or self.ripples[-1][2] > gap):
                 self.ripples.append([f["x"], f["y"], 0.0])
             keep = []
-            rings = np.zeros_like(self.buf)  # Ringe jedes Bild neu zeichnen, sonst verschmieren sie
+            rings = np.zeros_like(self.buf)  # redraw rings every frame, otherwise they smear
             for rp in self.ripples:
                 rp[2] += dt
                 rad = int(rp[2] * self.w * 0.35)
@@ -67,7 +67,7 @@ class Renderer:
                 self.parts = np.concatenate([self.parts, new.astype(np.float32)])[-3000:]
             if len(self.parts):
                 p = self.parts
-                p[:, 3] -= 0.25 * dt  # Funken steigen auf wie Feuer
+                p[:, 3] -= 0.25 * dt  # sparks rise like fire
                 p[:, 0] += p[:, 2] * dt; p[:, 1] += p[:, 3] * dt; p[:, 4] -= dt
                 inside = (p[:, 4] > 0) & (p[:, 0] >= 0) & (p[:, 0] < 1) & (p[:, 1] >= 0) & (p[:, 1] < 1)
                 self.parts = p = p[inside]
@@ -85,7 +85,7 @@ class Renderer:
 
 
 class SyphonOut:
-    """Schickt das Bild per Syphon an Resolume (nur macOS, braucht 'syphon-python')."""
+    """Sends the image to Resolume via Syphon (macOS only, needs 'syphon-python')."""
 
     def __init__(self, name="flowtrack"):
         import syphon

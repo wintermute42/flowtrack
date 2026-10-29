@@ -1,5 +1,5 @@
-"""Anbindung an Resolume: OSC für schnelle Live-Werte, REST zum Auslesen der Komposition,
-WebSocket zum Setzen von Parametern über ihre ID (ohne OSC-Adressen abtippen zu müssen)."""
+"""Resolume connection: OSC for fast live values, REST to read the composition,
+WebSocket to set parameters by id (no need to type OSC addresses)."""
 import json
 import threading
 import time
@@ -7,7 +7,7 @@ import time
 import requests
 from pythonosc.udp_client import SimpleUDPClient
 
-LIST_KEYS_BY_NAME = {"effects"}  # Listen, deren Einträge über ihren Namen statt über die Nummer adressiert werden
+LIST_KEYS_BY_NAME = {"effects"}  # lists whose entries are addressed by name instead of number
 
 
 def _name(node):
@@ -18,7 +18,7 @@ def _name(node):
 
 
 def walk_params(node, path=()):
-    """Durchläuft das Kompositions-JSON und liefert (pfad, parameter-dict) für jeden Parameter."""
+    """Walks the composition JSON and yields (path, parameter dict) for every parameter."""
     if isinstance(node, dict):
         if "id" in node and "valuetype" in node:
             yield "/".join(path), node
@@ -43,7 +43,7 @@ class Resolume:
         self.osc = SimpleUDPClient(self.host, cfg.get("osc_port", 7000))
         self.base = f"http://{self.host}:{cfg.get('http_port', 8080)}/api/v1"
         self.ws_url = f"ws://{self.host}:{cfg.get('ws_port', cfg.get('http_port', 8080))}/api/v1"
-        self.params = {}  # pfad -> {id, min, max, valuetype}
+        self.params = {}  # path -> {id, min, max, valuetype}
         self.ws = None
         self._ws_lock = threading.Lock()
         self._rest_last = {}
@@ -61,7 +61,7 @@ class Resolume:
         return self.params
 
     def find(self, query):
-        """Exakter Pfad oder eindeutige Teilzeichenkette (Groß-/Kleinschreibung egal)."""
+        """Exact path or unique substring (case-insensitive)."""
         if query in self.params:
             return query
         q = query.lower()
@@ -69,19 +69,19 @@ class Resolume:
         if len(hits) == 1:
             return hits[0]
         if not hits:
-            raise KeyError(f"Kein Resolume-Parameter passt zu '{query}'")
-        raise KeyError(f"'{query}' ist mehrdeutig: {hits[:5]}")
+            raise KeyError(f"No Resolume parameter matches '{query}'")
+        raise KeyError(f"'{query}' is ambiguous: {hits[:5]}")
 
     # ---------- WebSocket ----------
     def connect_ws(self):
         try:
             import websocket  # websocket-client
             self.ws = websocket.create_connection(self.ws_url, timeout=2)
-            # Resolume schickt beim Verbinden den Zustand; den lesen wir im Hintergrund weg.
+            # Resolume sends its state on connect; drain it in the background.
             threading.Thread(target=self._drain, daemon=True).start()
             return True
         except Exception as e:
-            print(f"[resolume] WebSocket nicht verfügbar ({e}), nutze REST als Ersatz")
+            print(f"[resolume] WebSocket not available ({e}), falling back to REST")
             self.ws = None
             return False
 
@@ -92,7 +92,7 @@ class Resolume:
             except Exception:
                 time.sleep(0.5)
 
-    # ---------- Setzen ----------
+    # ---------- Setting ----------
     def send_osc(self, address, value):
         if self.log:
             print(f"[osc] {address} {value}")
@@ -115,7 +115,7 @@ class Resolume:
                 return
             except Exception:
                 self.ws = None
-        # REST-Ersatz, auf ~20 Updates/s je Parameter begrenzt
+        # REST fallback, limited to ~20 updates/s per parameter
         now = time.time()
         if now - self._rest_last.get(path, 0) < 0.05:
             return

@@ -1,4 +1,4 @@
-"""Mappings (Merkmal -> Resolume-Parameter, jedes Bild) und Regeln (Ereignis -> Aktion)."""
+"""Mappings (feature -> Resolume parameter, every frame) and rules (event -> action)."""
 import operator
 import re
 import time
@@ -26,7 +26,7 @@ class Mapper:
             if "param" in o:
                 o["_path"] = resolume.find(o["param"]) if resolume.params else None
                 if o["_path"] is None:
-                    print(f"[mapping] '{o['param']}' übersprungen: Resolume-Parameter nicht ausgelesen")
+                    print(f"[mapping] '{o['param']}' skipped: Resolume parameters not read")
                     continue
             self.outputs.append(o)
 
@@ -59,11 +59,11 @@ class Rule:
             return not f["present"]
         m = COND_RE.match(self.when)
         if not m:
-            raise ValueError(f"Regel nicht verstanden: '{self.when}'")
+            raise ValueError(f"Rule not understood: '{self.when}'")
         return OPS[m.group(2)](f[m.group(1)], float(m.group(3)))
 
     def step(self, f, now):
-        """True, wenn die Regel in diesem Moment auslöst (einmal pro Eintreten der Bedingung)."""
+        """True when the rule fires at this moment (once each time the condition becomes true)."""
         if not self.condition(f):
             self.since, self.fired = None, False
             return False
@@ -85,7 +85,7 @@ class RuleEngine:
         now = time.time() if now is None else now
         for r in self.rules:
             if r.step(f, now):
-                print(f"[regel] {r.spec.get('name', r.when)} ausgelöst")
+                print(f"[rule] {r.spec.get('name', r.when)} fired")
                 for a in r.actions:
                     self.run(a)
 

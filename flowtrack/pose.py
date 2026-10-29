@@ -1,5 +1,5 @@
-"""Körper-Erkennung mit MediaPipe (KI): liefert Handgelenke, Hände, Kopf oder Körpermitte als Punkte.
-Funktioniert mit jeder normalen Kamera und lässt sich von Projektion weniger stören als die Helligkeitserkennung."""
+"""Body detection with MediaPipe (AI): returns wrists, hands, head or body centre as points.
+Works with any regular camera and is less disturbed by the projection than brightness detection."""
 import urllib.request
 from pathlib import Path
 
@@ -10,14 +10,14 @@ MODELS = {
     "full": "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/latest/pose_landmarker_full.task",
 }
 
-# Namen -> MediaPipe-Landmarken. Mehrere Indizes werden gemittelt.
+# name -> MediaPipe landmarks; several indices are averaged
 POINTS = {
     "nose": [0],
     "left_wrist": [15], "right_wrist": [16],
     "left_hand": [15, 17, 19, 21], "right_hand": [16, 18, 20, 22],
     "left_elbow": [13], "right_elbow": [14],
     "left_foot": [27, 29, 31], "right_foot": [28, 30, 32],
-    "center": [11, 12, 23, 24],  # Mitte aus Schultern und Hüften
+    "center": [11, 12, 23, 24],  # centre of shoulders and hips
 }
 
 
@@ -25,7 +25,7 @@ def model_path(variant):
     path = Path(__file__).resolve().parent.parent / "models" / f"pose_landmarker_{variant}.task"
     if not path.exists():
         path.parent.mkdir(exist_ok=True)
-        print(f"[pose] lade KI-Modell '{variant}' herunter (einmalig) …")
+        print(f"[pose] downloading model '{variant}' (once) …")
         urllib.request.urlretrieve(MODELS[variant], path)
     return path
 
@@ -38,7 +38,7 @@ class PoseDetector:
         self.points = cfg.get("pose_points", ["right_hand", "left_hand"])
         unknown = [p for p in self.points if p not in POINTS]
         if unknown:
-            raise ValueError(f"Unbekannte pose_points {unknown}; möglich: {sorted(POINTS)}")
+            raise ValueError(f"Unknown pose_points {unknown}; valid: {sorted(POINTS)}")
         self.min_vis = cfg.get("pose_min_visibility", 0.5)
         opts = vision.PoseLandmarkerOptions(
             base_options=BaseOptions(model_asset_path=str(model_path(cfg.get("pose_model", "lite")))),
@@ -47,11 +47,11 @@ class PoseDetector:
         )
         self.landmarker = vision.PoseLandmarker.create_from_options(opts)
         self.last_ts = -1
-        self.landmarks = []  # für die Vorschau
+        self.landmarks = []  # for the preview
 
     def detect(self, frame, now):
         h, w = frame.shape[:2]
-        ts = max(int(now * 1000), self.last_ts + 1)  # MediaPipe verlangt steigende Zeitstempel
+        ts = max(int(now * 1000), self.last_ts + 1)  # MediaPipe requires increasing timestamps
         self.last_ts = ts
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         result = self.landmarker.detect_for_video(self.mp.Image(image_format=self.mp.ImageFormat.SRGB, data=rgb), ts)
@@ -66,7 +66,7 @@ class PoseDetector:
                     continue
                 x = sum(lm.x for lm in lms) / len(lms) * w
                 y = sum(lm.y for lm in lms) / len(lms) * h
-                # "Fläche" = Rang, damit der zuerst genannte Punkt der Hauptpunkt bleibt
+                # "area" = rank, so the first listed point stays the main point
                 blobs.append((x, y, float(len(self.points) - rank)))
         blobs.sort(key=lambda b: -b[2])
         return blobs

@@ -1,8 +1,8 @@
-"""Kalibrierung: Der Beamer zeigt vier Markierungen, du ordnest sie im Kamerabild zu.
+"""Calibration: the projector shows four markers, you locate each one in the camera image.
 
-Pro Markierung entweder ins Kamerabild klicken oder LEERTASTE drücken: Dann wird der hellste
-Punkt im Kamerabild genommen. Mit IR-Filter vor der Kamera sieht sie den Beamer nicht. Dann
-hältst du eine Taschenlampe oder ein Feuerzeug an die projizierte Markierung und drückst LEERTASTE.
+For each marker, either click it in the camera image or press SPACE to take the brightest point
+in the camera image. A camera with an IR filter cannot see the projector; then hold a torch or a
+lighter at the projected marker and press SPACE.
 """
 import json
 
@@ -33,14 +33,14 @@ def run(cfg, source_spec, out_path):
     src = open_source(source_spec, cam.get("width", 1280), cam.get("height", 720), cam.get("fps", 60))
     points = []
     projector_window("projector", cfg)
-    cv2.namedWindow("kamera")
+    cv2.namedWindow("camera")
     state = {"frame": None}
 
     def on_click(event, x, y, *_):
         if event == cv2.EVENT_LBUTTONDOWN and len(points) < 4:
             points.append((x, y))
 
-    cv2.setMouseCallback("kamera", on_click)
+    cv2.setMouseCallback("camera", on_click)
     while True:
         frame = src.read()
         if frame is None:
@@ -58,9 +58,9 @@ def run(cfg, source_spec, out_path):
         for k, p in enumerate(points):
             cv2.drawMarker(view, p, (0, 255, 0), cv2.MARKER_CROSS, 30, 2)
             cv2.putText(view, str(k + 1), (p[0] + 10, p[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-        msg = f"Markierung {i + 1}: klicken oder LEERTASTE" if i < 4 else "ENTER = speichern, R = neu"
+        msg = f"Marker {i + 1}: click or SPACE" if i < 4 else "ENTER = save, R = restart"
         cv2.putText(view, msg, (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2)
-        cv2.imshow("kamera", view)
+        cv2.imshow("camera", view)
         key = cv2.waitKey(1) & 0xFF
         if key == ord(" ") and i < 4:
             points.append(brightest(frame))
@@ -70,10 +70,10 @@ def run(cfg, source_spec, out_path):
             H_ = cv2.getPerspectiveTransform(np.float32(points), np.float32(TARGETS))
             json.dump({"homography": H_.tolist(), "camera_points": points, "targets": TARGETS},
                       open(out_path, "w"), indent=2)
-            print(f"Kalibrierung gespeichert: {out_path}")
+            print(f"Calibration saved: {out_path}")
             break
         elif key in (27, ord("q")):
-            print("Abgebrochen, nichts gespeichert")
+            print("Cancelled, nothing saved")
             break
     src.release()
     cv2.destroyAllWindows()
