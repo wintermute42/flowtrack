@@ -21,29 +21,25 @@ Cooperative vibe development: agents and the owner (GitHub `wintermute42`) work 
 
 ### Board
 
-- Backend: **ClickUp**, space "Projekte", list "flowtrack" (statuses below; the space is shared by all
-  projects). Ticket ids are the ClickUp task ids.
-- ClickUp free plan allows about 100 API calls per 24 h for all projects together:
-  - read the list once per run (one `clickup_filter_tasks` call, only tasks updated since the last run when
-    possible) and reuse the result for the whole run;
-  - write in batches (`task update_many` via `clickup_execute_operator`), at most one comment per ticket per run;
-  - keep a short board mirror in project memory (ticket id, title, status, open question) and update it in
-    the same step as the ClickUp write;
-  - when the limit is hit or a write is refused: stop writing, record every pending change (ticket, what,
-    exact text) in `<project files>/stories/flowtrack-clickup-offen.md` and in memory, schedule a reminder
-    for when the limit resets; the next run applies pending changes first and then removes them;
-  - report the number of ClickUp calls at the end of every run.
+- Backend: **GitHub Issues** in this repository. Ticket ids are the issue numbers.
+- Labels are the truth: exactly one `status:` label per issue (`status:discovery`, `status:refine`,
+  `status:backlog`, `status:to-do`, `status:in-progress`, `status:done`, `status:completed`), plus
+  `needs-info`, `blocked`, `prio:1`–`prio:4` and topic labels such as `idee`.
+- The owner moves a ticket by changing its `status:` label. Agents cannot reach GitHub Projects; a Project
+  board may be used for viewing only, with the built-in workflows "Auto-close issue" and "Item added" off.
+- Read all open issues once per run and reuse the result. Close an issue only after it is integrated
+  (Completed and merged).
 
 ### Columns
 
 **Discovery → Refine → Backlog → To Do → In Progress → Done → Completed**
 
-Helper labels in any column: `needs-info` (question to the owner open: do not touch until answered),
+Helper labels in any status: `needs-info` (question to the owner open: do not touch until answered),
 `blocked` (waits for another ticket, linked in a comment).
 
 | Column | Meaning | Who moves in |
 |---|---|---|
-| Discovery | ideas, feature requests, early concepts (tag e.g. `idee`, `feature-request`) | owner or agent |
+| Discovery | ideas, feature requests, early concepts (label e.g. `idee`, `feature-request`) | owner or agent |
 | Refine | concept is worked out; entry needs a quick check: feasible, useful, no exclusion criteria | owner or agent |
 | Backlog | meets the DoR, not blocked | owner or agent |
 | To Do | released for building | **owner only** (or on the owner's explicit instruction) |
