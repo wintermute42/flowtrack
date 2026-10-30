@@ -1,1 +1,1 @@
-"""flowtrack: Prop-Tracking für Resolume."""
+"""flowtrack: prop tracking for Resolume."""
