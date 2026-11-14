@@ -133,6 +133,10 @@ Mit `stream: {enabled: true}` in `config.yaml` stellt flowtrack sein Bild lokal 
 Kamerabild und `mask` nur die erkannten hellen bzw. farbigen Stellen. Größe (`size`) und Bildrate (`fps`)
 sind einstellbar, Standard 512 Pixel und 15 Bilder pro Sekunde. Nur auf diesem Mac erreichbar.
 
+Bei `detect: pose` gibt es zusätzlich `http://127.0.0.1:8090/pose.jpg`: das erkannte Skelett im OpenPose-Stil
+(farbige Linien auf Schwarz). Eine KI-Visualisierung kann daraus per ControlNet eine Figur erzeugen, die genau
+wie der Tänzer steht. Ist niemand im Bild, antwortet die Adresse mit 503.
+
 ## 8. Eigene Effekte in Resolume (Syphon)
 
 Mit `--render` und dem installierten `syphon-python` erscheint in Resolume unter **Sources → Syphon** die Quelle „flowtrack“. Du mischst sie dann wie einen normalen Clip, etwa mit Blend-Mode „Add“ über deine Visuals.

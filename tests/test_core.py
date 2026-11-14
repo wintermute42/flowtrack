@@ -115,3 +115,38 @@ def test_frame_stream_serves_latest_jpeg():
         assert img.shape[1] == 64 and img[:, :20].mean() > 150 and img[:, -20:].mean() < 50
     finally:
         stream.close()
+
+
+def test_frame_stream_serves_openpose_skeleton():
+    import urllib.error
+    import urllib.request
+
+    import numpy as np
+
+    from flowtrack.stream import FrameStream, draw_openpose
+
+    # a standing person: 33 MediaPipe points in a 320x240 camera image
+    person = [(160.0, 60.0)] * 33
+    for i, (x, y) in {11: (140, 90), 12: (180, 90), 13: (130, 130), 14: (190, 130), 15: (125, 165), 16: (195, 165),
+                      23: (148, 160), 24: (172, 160), 25: (146, 200), 26: (174, 200), 27: (145, 235), 28: (175, 235),
+                      2: (155, 55), 5: (165, 55), 7: (150, 58), 8: (170, 58)}.items():
+        person[i] = (float(x), float(y))
+    skel = draw_openpose([person], 320, 240)
+    assert skel.shape == (240, 320, 3) and skel.sum() > 0 and skel[0:20, 0:20].sum() == 0
+
+    stream = FrameStream({"port": 0, "fps": 1000, "size": 160})
+    try:
+        url = f"http://127.0.0.1:{stream.port}/pose.jpg"
+        frame = np.zeros((240, 320, 3), np.uint8)
+        stream.update(frame, None, {"landmarks": []})
+        try:
+            urllib.request.urlopen(url, timeout=2)
+            assert False, "expected 503 without a person"
+        except urllib.error.HTTPError as e:
+            assert e.code == 503
+        stream.last = 0
+        stream.update(frame, None, {"landmarks": [person]})
+        data = urllib.request.urlopen(url, timeout=2).read()
+        assert data[:2] == b"\xff\xd8"
+    finally:
+        stream.close()
