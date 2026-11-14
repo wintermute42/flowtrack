@@ -109,7 +109,23 @@ rules:
 
 Für Bedingungen stehen `present`, `absent` oder `merkmal > zahl` zur Verfügung. Mögliche Merkmale sind `x`, `y`, `speed`, `count` (Anzahl Props) und `spread` (Abstand der Props). Als Aktionen gibt es `clip: [layer, clip]`, `osc: adresse` (mit `value`), `param: pfad` (mit `value`) und `effect: name|next`.
 
-## 7. Eigene Effekte in Resolume (Syphon)
+## 7. Weitere Programme mitsteuern (zusätzliche OSC-Ziele)
+
+Neben Resolume kann flowtrack dieselben Merkmale an weitere Programme schicken, etwa an eine KI-Visualisierung
+auf demselben Mac. In `config.yaml` unter `targets`:
+
+```yaml
+targets:
+  - host: 127.0.0.1
+    port: 7010
+```
+
+Jedes Ziel bekommt dann in jedem Bild `/flowtrack/x`, `/flowtrack/y`, `/flowtrack/speed`, `/flowtrack/count`,
+`/flowtrack/spread`, `/flowtrack/present` (1 oder 0) und `/flowtrack/points` (x1 y1 x2 y2 … aller Punkte,
+jeweils 0 bis 1 auf dem Beamerbild). Feuert eine Regel, kommt `/flowtrack/rule` mit ihrem Namen. Das geht
+auch ganz ohne Resolume. Mit `--dry-run -v` siehst du im Terminal, was gesendet würde.
+
+## 8. Eigene Effekte in Resolume (Syphon)
 
 Mit `--render` und dem installierten `syphon-python` erscheint in Resolume unter **Sources → Syphon** die Quelle „flowtrack“. Du mischst sie dann wie einen normalen Clip, etwa mit Blend-Mode „Add“ über deine Visuals.
 

@@ -76,16 +76,20 @@ class Rule:
 
 
 class RuleEngine:
-    def __init__(self, specs, resolume, renderer=None):
+    def __init__(self, specs, resolume, renderer=None, targets=None):
         self.rules = [Rule(s) for s in specs or []]
         self.res = resolume
         self.renderer = renderer
+        self.targets = targets  # extra OSC targets also hear which rule fired
 
     def step(self, f, now=None):
         now = time.time() if now is None else now
         for r in self.rules:
             if r.step(f, now):
-                print(f"[rule] {r.spec.get('name', r.when)} fired")
+                name = r.spec.get('name', r.when)
+                print(f"[rule] {name} fired")
+                if self.targets:
+                    self.targets.rule(name)
                 for a in r.actions:
                     self.run(a)
 

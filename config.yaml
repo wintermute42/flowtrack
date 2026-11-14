@@ -57,6 +57,15 @@ outputs:
   #   in: [0, 1.5]          # speed 0..1.5 → full control range
   #   range: [0, 1]
 
+# Extra OSC targets besides Resolume, e.g. a visualisation on this Mac. Every frame each target gets
+# /flowtrack/x, /y, /speed, /count, /spread, /present (1/0) and /points (x1 y1 x2 y2 …);
+# when a rule fires: /flowtrack/rule <name>. Works without Resolume.
+targets: []
+#  - host: 127.0.0.1
+#    port: 7010            # e.g. Dream
+#    prefix: /flowtrack    # optional
+#    points: true          # optional: also send all points
+
 # Rules fire once when the condition becomes true (for at least "for" seconds).
 # Conditions: present, absent, or "feature > number" (>, <, >=, <=, ==)
 # Actions: clip: [layer, clip] | osc: address (+ value) | param: path + value | effect: name/next
