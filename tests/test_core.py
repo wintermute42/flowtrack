@@ -160,7 +160,7 @@ def test_profiles_merge_over_config(tmp_path):
     out = load_config(cfg, ["hand", "dream"])
     assert out["tracking"]["detect"] == "pose"
     assert out["tracking"]["threshold"] == 210          # untouched keys stay
-    assert out["targets"] == [{"host": "127.0.0.1", "port": 7010, "prefix": "/flowtrack"}]
+    assert out["targets"] == [{"host": "127.0.0.1", "port": 7010, "prefix": "/flowtrack", "points": True}]
     assert out["stream"] == {"enabled": True, "port": 8090}
 
 

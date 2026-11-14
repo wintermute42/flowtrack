@@ -4,5 +4,6 @@ targets:
   - host: 127.0.0.1
     port: 7010
     prefix: /flowtrack
+    points: true          # all points, for diagnostics on the stage
 stream:
   enabled: true
