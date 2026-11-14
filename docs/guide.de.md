@@ -125,6 +125,14 @@ Jedes Ziel bekommt dann in jedem Bild `/flowtrack/x`, `/flowtrack/y`, `/flowtrac
 jeweils 0 bis 1 auf dem Beamerbild). Feuert eine Regel, kommt `/flowtrack/rule` mit ihrem Namen. Das geht
 auch ganz ohne Resolume. Mit `--dry-run -v` siehst du im Terminal, was gesendet würde.
 
+### Bild an andere Programme geben
+
+Mit `stream: {enabled: true}` in `config.yaml` stellt flowtrack sein Bild lokal bereit:
+`http://127.0.0.1:8090/frame.jpg` (das aktuelle Bild) und `http://127.0.0.1:8090/stream.mjpg` (laufend).
+`source: render` liefert den eingebauten Effekt (z. B. die Leuchtspuren, braucht `--render`), `camera` das
+Kamerabild und `mask` nur die erkannten hellen bzw. farbigen Stellen. Größe (`size`) und Bildrate (`fps`)
+sind einstellbar, Standard 512 Pixel und 15 Bilder pro Sekunde. Nur auf diesem Mac erreichbar.
+
 ## 8. Eigene Effekte in Resolume (Syphon)
 
 Mit `--render` und dem installierten `syphon-python` erscheint in Resolume unter **Sources → Syphon** die Quelle „flowtrack“. Du mischst sie dann wie einen normalen Clip, etwa mit Blend-Mode „Add“ über deine Visuals.

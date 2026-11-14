@@ -17,6 +17,7 @@ from .control import Mapper, RuleEngine
 from .render import EFFECTS, Renderer, SyphonOut
 from .resolume import Resolume
 from .source import DemoSource, open_source
+from .stream import FrameStream
 from .targets import OscTargets
 from .tracker import Calibration, Tracker
 
@@ -83,6 +84,7 @@ def cmd_run(cfg, args):
     renderer = Renderer(rend_cfg) if rend_cfg.get("enabled", False) or args.render else None
     mapper = Mapper(cfg.get("outputs"), res)
     targets = OscTargets(cfg.get("targets"), dry_run=args.dry_run, log=args.dry_run and args.verbose)
+    stream = FrameStream(cfg["stream"]) if cfg.get("stream", {}).get("enabled") else None
     rules = RuleEngine(cfg.get("rules"), res, renderer, targets)
 
     syphon = None
@@ -108,12 +110,15 @@ def cmd_run(cfg, args):
         mapper.apply(f)
         targets.send(f)
         rules.step(f, now)
+        out = None
         if renderer:
             out = renderer.frame(f, 1.0 / cam.get("fps", 60) if demo else max(time.time() - last, 1e-3))
             if syphon:
                 syphon.send(out)
             if show_out:
                 cv2.imshow("output", out)
+        if stream:
+            stream.update(frame, out, f)
         nowr = time.time()
         fps = 0.9 * fps + 0.1 / max(nowr - last, 1e-3)
         last = nowr
@@ -142,6 +147,8 @@ def cmd_run(cfg, args):
             tcfg["show_mask"] = not tcfg.get("show_mask")
     src.release()
     tracker.close()
+    if stream:
+        stream.close()
     if syphon:
         syphon.close()
     if not args.headless:

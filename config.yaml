@@ -66,6 +66,15 @@ targets: []
 #    prefix: /flowtrack    # optional
 #    points: true          # optional: also send all points
 
+# Local image stream for other programs (e.g. an AI visualisation): http://127.0.0.1:8090/stream.mjpg
+# and /frame.jpg. source: render (built-in effect, needs --render) | camera | mask (only detected parts).
+stream:
+  enabled: false
+  port: 8090
+  source: render
+  size: 512            # longest side in pixels
+  fps: 15
+
 # Rules fire once when the condition becomes true (for at least "for" seconds).
 # Conditions: present, absent, or "feature > number" (>, <, >=, <=, ==)
 # Actions: clip: [layer, clip] | osc: address (+ value) | param: path + value | effect: name/next

@@ -93,3 +93,25 @@ def test_osc_targets_dry_run_sends_nothing(capsys):
     targets = OscTargets([{"port": 9}], dry_run=True, log=True)
     targets.send({"present": False, "x": 0.5, "y": 0.5, "speed": 0.0, "count": 0, "spread": 0.0, "blobs": []})
     assert "/flowtrack/present 0" in capsys.readouterr().out
+
+
+def test_frame_stream_serves_latest_jpeg():
+    import urllib.request
+
+    import numpy as np
+
+    from flowtrack.stream import FrameStream
+
+    stream = FrameStream({"port": 0, "fps": 1000, "size": 64, "source": "mask"})
+    try:
+        frame = np.full((90, 160, 3), 200, np.uint8)
+        mask = np.zeros((90, 160), np.uint8)
+        mask[:, :80] = 255
+        stream.update(frame, None, {"mask": mask})
+        data = urllib.request.urlopen(f"http://127.0.0.1:{stream.port}/frame.jpg", timeout=2).read()
+        assert data[:2] == b"\xff\xd8"  # JPEG
+        import cv2
+        img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+        assert img.shape[1] == 64 and img[:, :20].mean() > 150 and img[:, -20:].mean() < 50
+    finally:
+        stream.close()
