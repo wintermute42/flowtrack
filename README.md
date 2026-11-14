@@ -21,7 +21,8 @@ python3 -m pip install -r requirements.txt
 python3 -m flowtrack run --source demo --render --dry-run   # no camera, no Resolume needed
 ```
 
-Settings live in `config.yaml`. The full user guide (German) is in [docs/guide.de.md](docs/guide.de.md).
+Settings live in `config.yaml`; ready-made profiles go on top with `--profile` (e.g. `--profile hand` for
+AI hand tracking without fire, see `flowtrack/profiles/`). The full user guide (German) is in [docs/guide.de.md](docs/guide.de.md).
 
 ## Tests
 

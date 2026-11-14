@@ -22,8 +22,30 @@ from .targets import OscTargets
 from .tracker import Calibration, Tracker
 
 
-def load_config(path):
-    return yaml.safe_load(Path(path).read_text()) or {}
+PROFILE_DIR = Path(__file__).parent / "profiles"
+
+
+def profile_names():
+    return sorted(p.stem for p in PROFILE_DIR.glob("*.yaml"))
+
+
+def merge(base, over):
+    """Deep merge: dictionaries are merged key by key, everything else (lists too) is replaced."""
+    out = dict(base)
+    for k, v in (over or {}).items():
+        out[k] = merge(out[k], v) if isinstance(v, dict) and isinstance(out.get(k), dict) else v
+    return out
+
+
+def load_config(path, profiles=()):
+    """config.yaml, then each profile on top: a shipped name (flowtrack/profiles/<name>.yaml) or a YAML file."""
+    cfg = yaml.safe_load(Path(path).read_text()) or {}
+    for name in profiles or ():
+        p = Path(name) if name.endswith((".yaml", ".yml")) else PROFILE_DIR / f"{name}.yaml"
+        if not p.is_file():
+            sys.exit(f"Unknown profile '{name}'. Available: {', '.join(profile_names())} (or a path to a .yaml file).")
+        cfg = merge(cfg, yaml.safe_load(p.read_text()) or {})
+    return cfg
 
 
 def cmd_discover(cfg, args):
@@ -160,6 +182,8 @@ def main(argv=None):
     ap = argparse.ArgumentParser(prog="flowtrack")
     ap.add_argument("command", choices=["run", "calibrate", "discover"])
     ap.add_argument("-c", "--config", default="config.yaml")
+    ap.add_argument("-p", "--profile", action="append", default=[],
+                    help=f"settings on top of the config, repeatable: {', '.join(profile_names())} or a .yaml file")
     ap.add_argument("-s", "--source", help="camera number (0, 1, …), video file, 'demo' or 'demo-color'")
     ap.add_argument("--render", action="store_true", help="enable built-in effects")
     ap.add_argument("--dry-run", action="store_true", help="send nothing to Resolume, only print")
@@ -168,7 +192,9 @@ def main(argv=None):
     ap.add_argument("-v", "--verbose", action="store_true")
     ap.add_argument("--filter", help="discover: only paths containing this text")
     args = ap.parse_args(argv)
-    cfg = load_config(args.config)
+    cfg = load_config(args.config, args.profile)
+    if args.profile:
+        print(f"[config] {args.config} + profile {' + '.join(args.profile)}")
     if args.command == "discover":
         cmd_discover(cfg, args)
     elif args.command == "calibrate":
