@@ -17,6 +17,7 @@ from .control import Mapper, RuleEngine
 from .render import EFFECTS, Renderer, SyphonOut
 from .resolume import Resolume
 from .source import DemoSource, open_source
+from .targets import OscTargets
 from .tracker import Calibration, Tracker
 
 
@@ -81,7 +82,8 @@ def cmd_run(cfg, args):
     rend_cfg = cfg.get("render", {})
     renderer = Renderer(rend_cfg) if rend_cfg.get("enabled", False) or args.render else None
     mapper = Mapper(cfg.get("outputs"), res)
-    rules = RuleEngine(cfg.get("rules"), res, renderer)
+    targets = OscTargets(cfg.get("targets"), dry_run=args.dry_run, log=args.dry_run and args.verbose)
+    rules = RuleEngine(cfg.get("rules"), res, renderer, targets)
 
     syphon = None
     if renderer and rend_cfg.get("syphon", True) and not args.headless:
@@ -104,6 +106,7 @@ def cmd_run(cfg, args):
         now = src.n / src.fps if demo else time.time()
         f = tracker.update(frame, now)
         mapper.apply(f)
+        targets.send(f)
         rules.step(f, now)
         if renderer:
             out = renderer.frame(f, 1.0 / cam.get("fps", 60) if demo else max(time.time() - last, 1e-3))

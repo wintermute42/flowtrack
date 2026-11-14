@@ -44,3 +44,52 @@ def test_tracker_finds_demo_points():
             found += 1
             assert 0 <= f["blobs"][0][0] <= 1 and 0 <= f["blobs"][0][1] <= 1
     assert found > 50
+
+
+def _receive(sock, n):
+    """Reads n OSC datagrams from a UDP socket and returns {address: params}."""
+    from pythonosc.osc_message import OscMessage
+    out = {}
+    for _ in range(n):
+        data, _ = sock.recvfrom(4096)
+        msg = OscMessage(data)
+        out[msg.address] = msg.params
+    return out
+
+
+def test_osc_targets_send_features_and_rules():
+    import socket
+
+    from flowtrack.control import RuleEngine
+    from flowtrack.targets import OscTargets
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(("127.0.0.1", 0))
+    sock.settimeout(2)
+    port = sock.getsockname()[1]
+    targets = OscTargets([{"host": "127.0.0.1", "port": port}])
+    f = {"present": True, "x": 0.25, "y": 0.75, "speed": 1.5, "count": 2, "spread": 0.4,
+         "blobs": [(0.25, 0.75, 100.0), (0.5, 0.5, 50.0)]}
+    targets.send(f)
+    got = _receive(sock, 7)
+    assert got["/flowtrack/x"] == [0.25]
+    assert got["/flowtrack/present"] == [1]
+    assert got["/flowtrack/count"] == [2.0]
+    assert got["/flowtrack/points"] == [0.25, 0.75, 0.5, 0.5]
+
+    class FakeResolume:
+        def send_osc(self, *a):
+            pass
+
+    engine = RuleEngine([{"name": "Schnell", "when": "speed > 1.0", "do": {"osc": "/x"}}], FakeResolume(), targets=targets)
+    engine.step(f, now=0.0)
+    assert _receive(sock, 1)["/flowtrack/rule"] == ["Schnell"]
+    sock.close()
+
+
+def test_osc_targets_dry_run_sends_nothing(capsys):
+    from flowtrack.targets import OscTargets
+
+    targets = OscTargets([{"port": 9}], dry_run=True, log=True)
+    targets.send({"present": False, "x": 0.5, "y": 0.5, "speed": 0.0, "count": 0, "spread": 0.0, "blobs": []})
+    assert "/flowtrack/present 0" in capsys.readouterr().out
