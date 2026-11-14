@@ -150,3 +150,32 @@ def test_frame_stream_serves_openpose_skeleton():
         assert data[:2] == b"\xff\xd8"
     finally:
         stream.close()
+
+
+def test_profiles_merge_over_config(tmp_path):
+    from flowtrack.__main__ import load_config
+    cfg = tmp_path / "config.yaml"
+    cfg.write_text("tracking: {detect: brightness, threshold: 210}\n"
+                   "targets: [{host: 10.0.0.9, port: 9000}]\nstream: {enabled: false, port: 8090}\n")
+    out = load_config(cfg, ["hand", "dream"])
+    assert out["tracking"]["detect"] == "pose"
+    assert out["tracking"]["threshold"] == 210          # untouched keys stay
+    assert out["targets"] == [{"host": "127.0.0.1", "port": 7010, "prefix": "/flowtrack", "points": True}]
+    assert out["stream"] == {"enabled": True, "port": 8090}
+
+
+def test_profile_from_file_and_unknown_profile(tmp_path):
+    from flowtrack.__main__ import load_config
+    cfg = tmp_path / "config.yaml"
+    cfg.write_text("tracking: {detect: brightness}\n")
+    own = tmp_path / "mine.yaml"
+    own.write_text("tracking: {detect: color}\n")
+    assert load_config(cfg, [str(own)])["tracking"]["detect"] == "color"
+    with pytest.raises(SystemExit, match="Available: dream, hand"):
+        load_config(cfg, ["nope"])
+
+
+def test_shipped_profiles_run_headless_on_demo(capsys):
+    from flowtrack.__main__ import main
+    main(["run", "--profile", "dream", "--source", "demo", "--headless", "--frames", "3", "--dry-run"])
+    assert "profile dream" in capsys.readouterr().out

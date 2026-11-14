@@ -1,0 +1,6 @@
+# Rehearsals without fire: follow both hands with AI body detection (MediaPipe) in a normally lit room.
+tracking:
+  detect: pose
+  pose_points: [right_hand, left_hand]
+  pose_model: lite
+  pose_people: 1

@@ -71,6 +71,19 @@ Tasten im Kamerafenster:
 
 **KI-Körpererkennung (ohne IR, mit jeder Kamera):** Setz in `config.yaml` `detect: pose`. MediaPipe findet dann Hände, Handgelenke, Füße oder die Körpermitte, auch wenn Licht auf den Artisten projiziert wird. Welche Punkte zählen, legst du mit `pose_points` fest. Beim ersten Start lädt flowtrack das Modell herunter (ca. 6 MB). Damit folgen die Effekte dem Körper und den Händen statt der Prop-Spitze, was bei schnellen Poi oft sogar ruhiger aussieht. Der Modus `mode: centroid` nimmt die Mitte aller Punkte, und `spread` entspricht dann dem Abstand der Hände.
 
+**Fertige Profile:** Statt `config.yaml` umzubauen, legst du ein Profil darüber, auch mehrere hintereinander:
+
+```bash
+python3 -m flowtrack run --profile hand                     # Proben ohne Feuer: beide Hände per KI (detect: pose)
+python3 -m flowtrack run --render --profile dream            # Bewegung per OSC an Port 7010, Bildstream an
+python3 -m flowtrack run --render -p dream -p hand           # beides
+python3 -m flowtrack run --profile meine-buehne.yaml         # eigene Datei
+```
+
+Ein Profil ändert nur die Werte, die darin stehen; alles andere kommt aus `config.yaml`. Listen wie `targets`
+ersetzt es ganz. Die mitgelieferten Profile liegen in `flowtrack/profiles/`. Für die Show mit Feuer oder LED
+startest du ohne Profil (`detect: brightness` bzw. `color` aus `config.yaml`).
+
 **Schnelle Bewegungen:** `lead_ms` schiebt die Position etwas in die Zukunft und gleicht so einen Teil der Verzögerung aus. Im Test mit 100 ms Verzögerung sank der mittlere Versatz damit von etwa 6,7 % auf 2,6 % der Bildbreite. Fängt der Punkt an zu zappeln, verkleinerst du `lead_ms` oder `beta`.
 
 **Mit IR-Kamera:** Bild und Schwelle wie oben einstellen. Die Projektion ist für die Kamera dann unsichtbar.
@@ -152,6 +165,7 @@ Mit `--render` und dem installierten `syphon-python` erscheint in Resolume unter
 | `flowtrack/control.py` | Mappings und Regeln |
 | `flowtrack/render.py` | eigene Effekte, Syphon |
 | `flowtrack/calibrate.py` | Kalibrierung |
+| `flowtrack/profiles/` | fertige Profile (`hand`, `dream`) für `--profile` |
 
 ## Bekannte Grenzen (Prototyp)
 

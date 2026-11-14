@@ -1,0 +1,9 @@
+# Feed Dream (AI dream machine on this Mac): movement over OSC to port 7010 and the image stream on port 8090.
+# Note: lists replace the ones in config.yaml, so this sets "targets" to Dream only.
+targets:
+  - host: 127.0.0.1
+    port: 7010
+    prefix: /flowtrack
+    points: true          # all points, for diagnostics on the stage
+stream:
+  enabled: true
